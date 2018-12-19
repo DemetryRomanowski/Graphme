@@ -1,0 +1,126 @@
+<html> 
+	<head>
+		<title>Graphme</title>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.3/Chart.bundle.js"></script>
+		<script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js">  </script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js"></script>
+		<script>
+			$(document).ready(() => {
+				var ctx = document.getElementById("cpu_process").getContext('2d');
+				var socket = io();
+				
+				ctx.canvas.width = 900;
+				ctx.canvas.height = 900;
+
+				var chart = new Chart(ctx, {
+				type: 'line',
+				data: {
+					labels: [],
+					datasets: []
+				    },
+				    options: {
+					responsive: true, 
+					elements: {
+						line: {
+							tension: 0.1	
+						}
+					},
+					scales: {
+					    yAxes: [{
+						stacked: false,
+						ticks: {
+						    beginAtZero:true
+						}
+					    }]
+					}
+				    }
+				});
+
+				function randomColor()
+				{
+					return '#'+Math.floor(Math.random()*16777215).toString(16);
+				}
+
+				function addDataSet(chart)
+				{
+					one_color = randomColor(); 
+					point_color = randomColor();
+					hover_color = randomColor();
+					chart.data.datasets.push({
+						data: [],
+						label: '',
+						fill: false,
+						borderColor: one_color,
+   						backgroundColor: one_color,
+   						pointBackgroundColor: point_color,
+   						pointBorderColor: point_color,
+   						pointHoverBackgroundColor: hover_color,
+   						pointHoverBorderColor: hover_color
+					});
+				}
+
+				var do_once = false; 
+
+				socket.on('data', (data) => {
+					//console.log(data);
+
+					if(!do_once)
+					{
+						//Add the first data and total usage label
+						addDataSet(chart);
+						chart.data.datasets[0].data.push(data.total_usage);
+						chart.data.datasets[0].label = "Total Usage";
+						
+						//Add all the process labels
+						for(var i = 1; i < data.process_list.length; i++)
+						{
+							addDataSet(chart);
+							chart.data.datasets[i].label = data.process_list[i].name;
+						}
+
+						do_once = true; 
+					}
+					
+					//Add the x Axis labels
+					if(chart.data.labels.length > data.graph_size)
+					{
+						chart.data.labels.shift();
+					}
+
+					chart.data.labels.push(data.current_time);
+					
+					//Update the total usage thing.
+					if(chart.data.datasets[0].data.length > data.graph_size)
+					{
+						chart.data.datasets[0].data.shift();
+					}
+					chart.data.datasets[0].data.push(data.total_usage);
+
+					//Update all the data from other processes
+					//for(var i = 1; i < data.process_list.length; i++) 
+					for(var i = 1; i < data.process_list.length; i++)
+					{
+						//if(data.process_list[i].pcpu == 0)
+						//	continue;
+						if(!chart.data.datasets[i])
+							continue; 
+
+						if(chart.data.datasets[i].data.length > data.graph_size)
+						{
+							chart.data.datasets[i].data.shift();
+						}
+						chart.data.datasets[i].data.push(data.process_list[i].pcpu);
+					}
+
+					chart.update();
+				});
+				
+			});
+		</script>
+	</head>
+
+	<body>
+		<canvas id="cpu_process" width="200" height="200" style="width: 200px; height: 200px"></canvas>
+	</body>
+
+</html>
