@@ -6,7 +6,8 @@ const http = require('http').Server(app);
 const io = require('socket.io')(http);
 
 let TIMEOUT = 1000; //The refresh time for the all the data and update on the page
-let GRAPH_SIZE = 10;
+let GRAPH_SIZE = 10; //The x axis count.
+let PORT = 8080; //The port to open the server on.
 
 //Blank data template
 let data = {
@@ -109,7 +110,7 @@ io.on('connection', (socket) => {
 });
 
 //Start the server on 8080
-http.listen(8080, () => { 
-	console.log("Server started on 8080");
+http.listen(PORT, () => { 
+	console.log("Server started on " + PORT);
 });
 
